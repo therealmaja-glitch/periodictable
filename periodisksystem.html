@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="da">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>Det Periodiske System</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box;}
+body{
+font-family:'Segoe UI',sans-serif;
+background:#0a0a1a;
+color:#fff;
+min-height:100vh;
+overflow-x:hidden;
+}
+/* ── HEADER ── */
+header{
+text-align:center;
+padding:30px 20px 20px;
+background:linear-gradient(180deg,#000010,#0a0a2a);
+position:relative;
+}
+header h1{
+font-size:2.4em;
+letter-spacing:4px;
+color:#7ecfff;
+text-shadow:0 0 30px #3af;
+}
+header p{color:#aac;margin-top:6px;font-size:1em;}
+/* ── CONTROLS ── */
+.controls{
+display:flex;
+flex-wrap:wrap;
+gap:12px;
+justify-content:center;
+align-items:center;
+padding:16px 20px;
+background:#0d0d25;
+border-bottom:1px solid #1a1a3a;
+position:sticky;
+top:0;
+z-index:50;
+}
+.search-box{
+display:flex;
+align-items:center;
+background:#1a1a35;
+border:2px solid #2a2a5a;
+border-radius:30px;
+padding:6px 16px;
+gap:8px;
+transition:border-color 0.3s;
+}
+.search-box:focus-within{border-color:#7ecfff;}
+.search-box input{
+background:none;border:none;outline:none;
+color:#fff;font-size:0.95em;width:200px;
+}
+.search-box input::placeholder{color:#556;}
+.filter-btns{
+display:flex;flex-wrap:wrap;gap:6px;justify-content:center;
+}
+.filter-btn{
+padding:5px 14px;
+border:2px solid transparent;
+border-radius:20px;
+font-size:0.78em;
+cursor:pointer;
+transition:all 0.25s;
+font-weight:600;
+letter-spacing:0.5px;
+}
+.filter-btn:hover{transform:scale(1.05);}
+.filter-btn.active{box-shadow:0 0 12px currentColor;}
+/* ── LEGEND ── */
+.legend{
+display:flex;flex-wrap:wrap;gap:8px;
+justify-content:center;
+padding:10px 20px;
+background:#0d0d22;
+}
+.leg-item{
+display:flex;align-items:center;gap:5px;
+font-size:0.72em;color:#aac;cursor:pointer;
+padding:3px 8px;border-radius:10px;
+transition:background 0.2s;
+}
+.leg-item:hover{background:#1a1a3a;}
+.leg-color{width:12px;height:12px;border-radius:3px;flex-shrink:0;}
+/* ── TABLE WRAPPER ── */
+.table-wrapper{
+overflow-x:auto;
+padding:20px 10px 10px;
+}
+.pt-grid{
+display:grid;
+grid-template-columns:repeat(18,1fr);
+gap:3px;
+min-width:900px;
+max-width:1200px;
+margin:0 auto;
+}
+/* ── ELEMENT CELL ── */
+.el{
+aspect-ratio:1;
+border-radius:6px;
+cursor:pointer;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:center;
+position:relative;
+transition:transform 0.2s, box-shadow 0.2s, opacity 0.3s;
+border:1px solid rgba(255,255,255,0.08);
+padding:2px;
+min-width:0;
+}
+.el:hover{
+transform:scale(1.18);
+z-index:10;
+box-shadow:0 0 20px rgba(255,255,255,0.3);
+}
+.el.dimmed{opacity:0.12;}
+.el.highlighted{
+transform:scale(1.08);
+box-shadow:0 0 18px rgba(255,255,255,0.5);
+border-color:rgba(255,255,255,0.6);
+z-index:5;
+}
+.el-num{font-size:0.45em;line-height:1;opacity:0.8;align-self:flex-start;padding-left:3px;}
+.el-sym{font-size:1.1em;font-weight:700;line-height:1;}
+.el-name{font-size:0.32em;line-height:1.2;opacity:0.85;text-align:center;max-width:100%;}
+.el-mass{font-size:0.28em;opacity:0.65;line-height:1;}
+.spacer{background:transparent;border:none;cursor:default;}
+.spacer:hover{transform:none;box-shadow:none;}
+.period-label{
+display:flex;align-items:center;justify-content:center;
+font-size:0.65em;color:#556;font-weight:bold;
+}
+.group-label{
+display:flex;align-items:center;justify-content:center;
+font-size:0.6em;color:#445;padding-bottom:4px;
+}
+/* Lanthanide/Actinide gap label */
+.la-ac-label{
+grid-column:3/4;
+display:flex;align-items:center;justify-content:center;
+font-size:0.5em;color:#778;font-style:italic;
+background:rgba(255,255,255,0.03);
+border-radius:4px;
+border:1px dashed #334;
+}
+/* ── ELEMENT CATEGORIES ── */
+.alkali {background:linear-gradient(135deg,#8B0000,#cc2200);}
+.alkaline {background:linear-gradient(135deg,#7a4400,#c87000);}
+.transition {background:linear-gradient(135deg,#1a3a6a,#2a5aaa);}
+.post-trans {background:linear-gradient(135deg,#1a4a3a,#2a7a5a);}
+.metalloid {background:linear-gradient(135deg,#3a3a00,#6a6a00);}
+.nonmetal {background:linear-gradient(135deg,#003a3a,#006060);}
+.halogen {background:linear-gradient(135deg,#3a0050,#6a00aa);}
+.noble {background:linear-gradient(135deg,#1a0040,#3a0080);}
+.lanthanide {background:linear-gradient(135deg,#1a2a00,#3a5500);}
+.actinide {background:linear-gradient(135deg,#2a1500,#553000);}
+.hydrogen-cat {background:linear-gradient(135deg,#003060,#005090);}
+/* ── POPUP ── */
+.overlay{
+display:none;position:fixed;inset:0;
+background:rgba(0,0,0,0.8);z-index:999;
+justify-content:center;align-items:center;
+padding:20px;
+}
+.overlay.open{display:flex;}
+.popup{
+background:#0f0f28;
+border-radius:20px;
+max-width:580px;width:100%;
+position:relative;
+animation:popIn 0.3s ease;
+overflow:hidden;
+box-shadow:0 0 60px rgba(0,0,0,0.8);
+}
+@keyframes popIn{
+from{transform:scale(0.8);opacity:0;}
+to{transform:scale(1);opacity:1;}
+}
+.popup-top{
+padding:30px 30px 20px;
+display:flex;gap:20px;align-items:flex-start;
+}
+.popup-symbol-box{
+width:100px;height:100px;
+border-radius:14px;
+display:flex;flex-direction:column;
+align-items:center;justify-content:center;
+flex-shrink:0;
+}
+.popup-symbol-box .p-num{font-size:0.75em;opacity:0.8;align-self:flex-start;padding-left:6px;}
+.popup-symbol-box .p-sym{font-size:2.8em;font-weight:700;line-height:1;}
+.popup-symbol-box .p-name-s{font-size:0.7em;opacity:0.85;}
+.popup-info h2{font-size:1.6em;color:#7ecfff;margin-bottom:4px;}
+.popup-info .p-cat{font-size:0.82em;padding:3px 10px;border-radius:10px;display:inline-block;margin-bottom:10px;font-weight:600;}
+.popup-info .p-tagline{font-size:0.9em;color:#aac;line-height:1.5;}
+.popup-close{
+position:absolute;top:14px;right:18px;
+background:none;border:none;color:#7ecfff;
+font-size:1.8em;cursor:pointer;line-height:1;
+}
+.popup-stats{
+display:grid;grid-template-columns:1fr 1fr;
+gap:1px;background:#1a1a35;
+border-top:1px solid #1a1a35;
+}
+.stat{
+background:#0f0f28;padding:12px 20px;
+}
+.stat .s-label{font-size:0.72em;color:#778;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px;}
+.stat .s-val{font-size:0.95em;color:#dde;font-weight:600;}
+.popup-desc{
+padding:20px 30px 28px;
+color:#aab;font-size:0.92em;
+line-height:1.7;
+border-top:1px solid #1a1a35;
+}
+/* ── BOHR MODEL ── */
+.bohr-wrap{
+display:flex;justify-content:center;
+padding:16px 0 10px;
+border-top:1px solid #1a1a35;
+}
+.bohr{position:relative;width:130px;height:130px;}
+.bohr-nucleus{
+position:absolute;
+top:50%;left:50%;
+transform:translate(-50%,-50%);
+width:28px;height:28px;
+border-radius:50%;
+display:flex;align-items:center;justify-content:center;
+font-size:0.6em;font-weight:bold;z-index:5;
+}
+.bohr-orbit{
+position:absolute;
+border:1px solid rgba(255,255,255,0.15);
+border-radius:50%;
+top:50%;left:50%;
+transform:translate(-50%,-50%);
+}
+.bohr-electron{
+position:absolute;
+width:7px;height:7px;
+background:#7ecfff;
+border-radius:50%;
+box-shadow:0 0 6px #7ecfff;
+top:50%;left:50%;
+}
+/* ── TEMP INDICATOR ── */
+.state-indicator{
+display:flex;gap:6px;align-items:center;
+padding:6px 20px 16px;
+font-size:0.8em;color:#aac;
+}
+.state-dot{
+width:10px;height:10px;border-radius:50%;
+}
+/* ── QUIZ ── */
+.quiz-bar{
+background:#0d0d22;border-top:2px solid #1a1a3a;
+padding:20px;text-align:center;
+}
+.quiz-bar h3{color:#7ecfff;margin-bottom:12px;font-size:1.1em;}
+.quiz-question{color:#dde;font-size:1em;margin-bottom:14px;min-height:26px;}
+.quiz-options{
+display:flex;flex-wrap:wrap;gap:8px;justify-content:center;margin-bottom:10px;
+}
+.q-opt{
+padding:7px 18px;
+background:#1a1a35;border:2px solid #2a2a55;
+border-radius:20px;color:#ccd;cursor:pointer;
+font-size:0.88em;transition:all 0.2s;
+}
+.q-opt:hover:not(:disabled){background:#2a2a55;border-color:#7ecfff;}
+.q-opt.q-correct{background:#0a3a1a;border-color:#44ff88;color:#44ff88;}
+.q-opt.q-wrong{background:#3a0a0a;border-color:#ff4444;color:#ff4444;}
+.quiz-score-bar{color:#aac;font-size:0.9em;margin-top:6px;}
+.quiz-feedback{min-height:22px;font-size:0.9em;margin-bottom:4px;}
+/* ── STATS PANEL ── */
+.stats-panel{
+max-width:1200px;margin:0 auto;
+display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));
+gap:12px;padding:16px 20px;
+}
+.stat-card{
+background:#111128;border:1px solid #1e1e40;
+border-radius:12px;padding:14px;text-align:center;
+transition:border-color 0.3s;
+}
+.stat-card:hover{border-color:#7ecfff44;}
+.stat-card .sc-num{font-size:1.8em;font-weight:700;color:#7ecfff;}
+.stat-card .sc-lbl{font-size:0.75em;color:#778;margin-top:2px;}
+/* ── TEMPERATURE SLIDER ── */
+.temp-section{
+text-align:center;padding:12px 20px 6px;
+background:#0d0d22;border-top:1px solid #1a1a35;
+}
+.temp-section label{color:#aac;font-size:0.85em;display:block;margin-bottom:8px;}
+#temp-slider{
+width:min(400px,80vw);
+accent-color:#7ecfff;
+cursor:pointer;
+}
+.temp-display{
+display:flex;justify-content:center;gap:20px;
+margin-top:6px;font-size:0.8em;color:#778;
+}
+.temp-val{font-weight:bold;color:#7ecfff;font-size:1.1em;}
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:6px;height:6px;}
+::-webkit-scrollbar-track{background:#0a0a1a;}
+::-webkit-scrollbar-thumb{background:#2a2a5a;border-radius:3px;}
+/* ── RESPONSIVE ── */
+@media(max-width:700px){
+header h1{font-size:1.6em;}
+.search-box input{width:140px;}
+.popup-top{flex-direction:column;align-items:center;}
+.popup-stats{grid-template-columns:1fr;}
+}
+</style>
+</head>
+<body>
+<!-- HEADER -->
+<header>
+<h1>⚗️ Det Periodiske System</h1>
+<p>118 grundstoffer – klik på et element for at udforske det</p>
+</header>
+<!-- CONTROLS -->
+<div class="controls">
+<div class="search-box">
+<span>🔍</span>
+<input type="text" id="search" placeholder="Søg navn, symbol, nummer…" oninput="searchElements()"/>
+<span id="clear-search" style="cursor:pointer;color:#556;display:none;" onclick="clearSearch()">✕</span>
+</div>
+<div class="filter-btns" id="filter-btns">
+<button class="filter-btn active" data-cat="all"
+style="border-color:#7ecfff;color:#7ecfff;"
+onclick="filterCat('all',this)">Alle</button>
+<button class="filter-btn" data-cat="alkali"
+style="border-color:#cc2200;color:#ff6644;"
+onclick="filterCat('alkali',this)">Alkalimetaller</button>
+<button class="filter-btn" data-cat="alkaline"
+style="border-color:#c87000;color:#ffaa44;"
+onclick="filterCat('alkaline',this)">Jordalkalimetaller</button>
+<button class="filter-btn" data-cat="transition"
+style="border-color:#2a5aaa;color:#6699ff;"
+onclick="filterCat('transition',this)">Overgangsmetaller</button>
+<button class="filter-btn" data-cat="post-trans"
+style="border-color:#2a7a5a;color:#44cc88;"
+onclick="filterCat('post-trans',this)">Øvrige metaller</button>
+<button class="filter-btn" data-cat="metalloid"
+style="border-color:#6a6a00;color:#cccc00;"
+onclick="filterCat('metalloid',this)">Metalloider</button>
+<button class="filter-btn" data-cat="nonmetal"
+style="border-color:#006060;color:#00cccc;"
+onclick="filterCat('nonmetal',this)">Ikke-metaller</button>
+<button class="filter-btn" data-cat="halogen"
+style="border-color:#6a00aa;color:#cc44ff;"
+onclick="filterCat('halogen',this)">Halogener</button>
+<button class="filter-btn" data-cat="noble"
+style="border-color:#3a0080;color:#8844ff;"
+onclick="filterCat('noble',this)">Ædelgasser</button>
+<button class="filter-btn" data-cat="lanthanide"
+style="border-color:#3a5500;color:#88cc00;"
+onclick="filterCat('lanthanide',this)">Lanthanider</button>
+<button class="filter-btn" data-cat="actinide"
+style="border-color:#553000;color:#cc7700;"
+onclick="filterCat('actinide',this)">Actinider</button>
+</div>
+</div>
+<!-- TEMPERATURE SLIDER -->
+<div class="temp-section">
+<label>🌡️ Temperatur – se hvilke stoffer er <span style="color:#6699ff">faste</span>, <span style="color:#44ccff">flydende</span> eller <span style="color:#ff8844">gas</span> ved valgt temperatur</label>
+<input type="range" id="temp-slider" min="-273" max="6000" value="25" oninput="updateTempView(this.value)"/>
+<div class="temp-display">
+<span><span class="temp-val" id="temp-c">25</span> °C</span>
+<span><span class="temp-val" id="temp-k">298</span> K</span>
+<span><span class="temp-val" id="temp-f">77</span> °F</span>
+</div>
+</div>
+<!-- STATS PANEL -->
+<div class="stats-panel">
+<div class="stat-card"><div class="sc-num">118</div><div class="sc-lbl">Kendte grundstoffer</div></div>
+<div class="stat-card"><div class="sc-num">94</div><div class="sc-lbl">Naturligt forekommende</div></div>
+<div class="stat-card"><div class="sc-num">7</div><div class="sc-lbl">Perioder (rækker)</div></div>
+<div class="stat-card"><div class="sc-num">18</div><div class="sc-lbl">Grupper (kolonner)</div></div>
+<div class="stat-card"><div class="sc-num" id="solid-count">--</div><div class="sc-lbl">Faste ved 25°C</div></div>
+<div class="stat-card"><div class="sc-num" id="liquid-count">--</div><div class="sc-lbl">Flydende ved 25°C</div></div>
+<div class="stat-card"><div class="sc-num" id="gas-count">--</div><div class="sc-lbl">Gas ved 25°C</div></div>
+</div>
+<!-- PERIODIC TABLE -->
+<div class="table-wrapper">
+<div class="pt-grid" id="pt-grid"></div>
+</div>
+<!-- QUIZ BAR -->
+<div class="quiz-bar">
+<h3>🧠 Gæt grundstoffet!</h3>
+<div class="quiz-question" id="quiz-q">Klik "Nyt spørgsmål" for at starte</div>
+<div class="quiz-options" id="quiz-opts"></div>
+<div class="quiz-feedback" id="quiz-fb"></div>
+<div style="display:flex;gap:10px;justify-content:center;margin-top:8px;">
+<button class="q-opt" onclick="newQuizQuestion()" style="border-color:#7ecfff;color:#7ecfff;">🎲 Nyt spørgsmål</button>
+<span class="quiz-score-bar">Score: <b id="q-score">0</b> / <b id="q-total">0</b></span>
+</div>
+</div>
+<!-- POPUP OVERLAY -->
+<div class="overlay" id="overlay" onclick="closePopupOut(event)">
+<div class="popup" id="popup">
+<button class="popup-close" onclick="closePopup()">×</button>
+<div class="popup-top">
+<div class="popup-symbol-box" id="p-symbox">
+<span class="p-num" id="p-num"></span>
+<span class="p-sym" id="p-sym"></span>
+<span class="p-name-s" id="p-name-s"></span>
+</div>
+<div class="popup-info">
+<h2 id="p-name"></h2>
+<span class="p-cat" id="p-cat"></span>
+<p class="p-tagline" id="p-tagline"></p>
+</div>
+</div>
+<div class="bohr-wrap"><div class="bohr" id="bohr-model"></div></div>
+<div class="state-indicator" id="state-ind"></div>
+<div class="popup-stats" id="popup-stats"></div>
+<div class="popup-desc" id="popup-desc"></div>
+</div>
+</div>
+<script>
+// ══════════════════════════════════════════════
+// ELEMENT DATA
+// ══════════════════════════════════════════════
+const elements = [
+// Z, symbol, name (da), cat, period, group, mass, melt(°C), boil(°C), electrons[], desc, discovery, state25
+{z:1, sym:"H", name:"Hydrogen", cat:"hydrogen-cat", p:1, g:1, mass:"1.008", melt:-259, boil:-253, e:[1], desc:"Det letteste og mest udbredte grundstof i universet. Udgør ca. 75% af al synlig masse. Bruges i brændselsceller og rumraketters brændstof.", disc:"1766, Henry Cavendish", state:"gas"},
+{z:2, sym:"He", name:"Helium", cat:"noble", p:1, g:18, mass:"4.003", melt:-272, boil:-269, e:[2], desc:"Det næstletteste grundstof og den næstmest udbredte gas i universet. Bruges til balloner, MRI-maskiner og som kølemidie. Opdaget i solen før på Jorden.", disc:"1895, Ramsay & Clèv", state:"gas"},
+{z:3, sym:"Li", name:"Lithium", cat:"alkali", p:2, g:1, mass:"6.941", melt:181, boil:1342, e:[2,1], desc:"Det letteste metal. Bruges i genopladelige batterier (smartphones, elbiler). Så let at det flyder på vand – men reagerer voldsomt med det!", disc:"1817, Johan Arfwedson", state:"solid"},
+{z:4, sym:"Be", name:"Beryllium", cat:"alkaline", p:2, g:2, mass:"9.012", melt:1287, boil:2970, e:[2,2], desc:"Et let, stærkt og stift metal. Bruges i rumfartsindustrien og i røntgenapparater pga. lav røntgenabsorption. Meget giftigt ved indånding.", disc:"1798, Louis-Nicolas Vauquelin", state:"solid"},
+{z:5, sym:"B", name:"Bor", cat:"metalloid", p:2, g:13, mass:"10.81", melt:2075, boil:4000, e:[2,3], desc:"En metalloid der bruges i glas (borosilikat-glas = Pyrex), rengøringsmidler og som neutronabsorber i atomreaktorer.", disc:"1808, Gay-Lussac & Thénard", state:"solid"},
+{z:6, sym:"C", name:"Kulstof", cat:"nonmetal", p:2, g:14, mass:"12.01", melt:3550, boil:4027, e:[2,4], desc:"Grundlaget for alt organisk liv. Diamant og grafit er begge rent kulstof. Kulstof-14 bruges til datering af fossiler. Grafen er verdens tyndeste og stærkeste materiale.", disc:"Oldtiden", state:"solid"},
+{z:7, sym:"N", name:"Nitrogen", cat:"nonmetal", p:2, g:15, mass:"14.01", melt:-210, boil:-196, e:[2,5], desc:"Udgør 78% af Jordens atmosfære. Flydende nitrogen bruges til kryokonservering. Kvælstof er essentielt for proteiner og DNA.", disc:"1772, Daniel Rutherford", state:"gas"},
+{z:8, sym:"O", name:"Oxygen", cat:"nonmetal", p:2, g:16, mass:"16.00", melt:-219, boil:-183, e:[2,6], desc:"Det mest udbredte grundstof i Jordens skorpe. Nødvendigt for forbrænding og celleånding. Udgør 21% af atmosfæren.", disc:"1774, Carl Wilhelm Scheele", state:"gas"},
+{z:9, sym:"F", name:"Fluor", cat:"halogen", p:2, g:17, mass:"19.00", melt:-220, boil:-188, e:[2,7], desc:"Det mest reaktive og elektronegative grundstof. Bruges i tandpasta (fluorid), teflon og freoner. Ekstremt farlig i ren form.", disc:"1886, Henri Moissan", state:"gas"},
+{z:10, sym:"Ne", name:"Neon", cat:"noble", p:2, g:18, mass:"20.18", melt:-249, boil:-246, e:[2,8], desc:"En ædelgas der udsender det karakteristiske rødlige lys i neonreklamer. Kemisk inert – reagerer ikke med andre stoffer under normale betingelser.", disc:"1898, Ramsay & Travers", state:"gas"},
+{z:11, sym:"Na", name:"Natrium", cat:"alkali", p:3, g:1, mass:"22.99", melt:98, boil:883, e:[2,8,1], desc:"Reagerer eksplosivt med vand. Natriumchlorid (NaCl) er bordsalt. Natrium er essentielt for nervesignaler i kroppen.", disc:"1807, Humphry Davy", state:"solid"},
+{z:12, sym:"Mg", name:"Magnesium", cat:"alkaline", p:3, g:2, mass:"24.31", melt:650, boil:1091, e:[2,8,2], desc:"Et let, stærkt metal der brænder med et intenst hvidt lys. Bruges i legeringer til biler og fly, samt i klorofyl i planter.", disc:"1755, Joseph Black", state:"solid"},
+{z:13, sym:"Al", name:"Aluminium", cat:"post-trans", p:3, g:13, mass:"26.98", melt:660, boil:2519, e:[2,8,3], desc:"Det mest udbredte metal i Jordens skorpe. Ekstremt let og korrosionsbestandigt. Bruges i fly, biler, dåser og folier.", disc:"1825, Hans Christian Ørsted", state:"solid"},
+{z:14, sym:"Si", name:"Silicium", cat:"metalloid", p:3, g:14, mass:"28.09", melt:1414, boil:3265, e:[2,8,4], desc:"Næst mest udbredt i jordskorpen. Grundlaget for mikrochips og solceller. Silicon Valley er opkaldt efter dette element.", disc:"1824, Jöns Jacob Berzelius", state:"solid"},
+{z:15, sym:"P", name:"Fosfor", cat:"nonmetal", p:3, g:15, mass:"30.97", melt:44, boil:281, e:[2,8,5], desc:"Hvid fosfor er ekstremt brandfarlig og glødende i mørket. Rød fosfor bruges i tændstikker. Essentielt for DNA og ATP.", disc:"1669, Hennig Brand", state:"solid"},
+{z:16, sym:"S", name:"Svovl", cat:"nonmetal", p:3, g:16, mass:"32.06", melt:113, boil:445, e:[2,8,6], desc:"Et gult, sprødt stof med karakteristisk lugt. Bruges til at fremstille svovlsyre (verdens mest producerede kemikalie) og i gummiering.", disc:"Oldtiden", state:"solid"},
+{z:17, sym:"Cl", name:"Klor", cat:"halogen", p:3, g:17, mass:"35.45", melt:-101, boil:-34, e:[2,8,7], desc:"En gulgrøn giftig gas. Bruges til at rense drikkevand og som desinfektionsmiddel i svømmebassiner. Natriumchlorid (salt) er livsnødvendigt.", disc:"1774, Carl Wilhelm Scheele", state:"gas"},
+{z:18, sym:"Ar", name:"Argon", cat:"noble", p:3, g:18, mass:"39.95", melt:-189, boil:-186, e:[2,8,8], desc:"Den mest udbredte ædelgas i atmosfæren (0,93%). Bruges i glødelamper og svejsning for at beskytte mod oxidation.", disc:"1894, Rayleigh & Ramsay", state:"gas"},
+{z:19, sym:"K", name:"Kalium", cat:"alkali", p:4, g:1, mass:"39.10", melt:64, boil:759, e:[2,8,8,1], desc:"Essentielt mineral for plantevækst og menneskelige nerver. Bananer er rige på kalium. Reagerer voldsomt med vand.", disc:"1807, Humphry Davy", state:"solid"},
+{z:20, sym:"Ca", name:"Calcium", cat:"alkaline", p:4, g:2, mass:"40.08", melt:842, boil:1484, e:[2,8,8,2], desc:"Det mest udbredte metal i menneskekroppen – primært i knogler og tænder. Kalk (calciumcarbonat) er en af de mest udbredte bjergarter.", disc:"1808, Humphry Davy", state:"solid"},
+{z:21, sym:"Sc", name:"Scandium", cat:"transition", p:4, g:3, mass:"44.96", melt:1541, boil:2836, e:[2,8,9,2], desc:"Et sjældent metal opkaldt efter Skandinavien. Bruges i legeringer til sportsudstyr og i lysrør. Opdaget af Lars Fredrik Nilson.", disc:"1879, Lars Fredrik Nilson", state:"solid"},
+{z:22, sym:"Ti", name:"Titan", cat:"transition", p:4, g:4, mass:"47.87", melt:1668, boil:3287, e:[2,8,10,2], desc:"Et stærkt, let og korrosionsbestandigt metal. Bruges i fly, rumfart, kirurgiske implantater og højtydende sportsudstyr.", disc:"1791, William Gregor", state:"solid"},
+{z:23, sym:"V", name:"Vanadium", cat:"transition", p:4, g:5, mass:"50.94", melt:1910, boil:3407, e:[2,8,11,2], desc:"Bruges til at forstærke stål. Vanadiumstål bruges i vredejern og store konstruktioner. Opdaget to gange – første gang i 1801.", disc:"1831, Nils Gabriel Sefström", state:"solid"},
+{z:24, sym:"Cr", name:"Krom", cat:"transition", p:4, g:6, mass:"52.00", melt:1907, boil:2671, e:[2,8,13,1], desc:"Giver rustfrit stål dets egenskaber. Krom giver rubiner deres røde farve og smaragder deres grønne. Blankt krom bruges som dekorationsmetal.", disc:"1798, Louis-Nicolas Vauquelin", state:"solid"},
+{z:25, sym:"Mn", name:"Mangan", cat:"transition", p:4, g:7, mass:"54.94", melt:1246, boil:2061, e:[2,8,13,2], desc:"Essentielt for stålproduktion – hærder og styrker stål. Bruges i tørre batterier og som tilsætningsstof i benzin.", disc:"1774, Johan Gottlieb Gahn", state:"solid"},
+{z:26, sym:"Fe", name:"Jern", cat:"transition", p:4, g:8, mass:"55.85", melt:1538, boil:2861, e:[2,8,14,2], desc:"Det mest brugte metal på Jorden. Stål er en jernlegering. Jordens kerne består primært af jern og nikkel. Essentielt for blodet (hæmoglobin).", disc:"Oldtiden", state:"solid"},
+{z:27, sym:"Co", name:"Kobolt", cat:"transition", p:4, g:9, mass:"58.93", melt:1495, boil:2927, e:[2,8,15,2], desc:"Giver blå farve til glas og keramik (koboltblåt). Bruges i lithium-ion batterier og magneter. Kobolt-60 bruges til strålebehandling.", disc:"1735, Georg Brandt", state:"solid"},
+{z:28, sym:"Ni", name:"Nikkel", cat:"transition", p:4, g:10, mass:"58.69", melt:1455, boil:2913, e:[2,8,16,2], desc:"Et sølvhvidt, korrosionsbestandigt metal. Bruges i mønter, rustfrit stål og i batterier (NiMH). Nickelmønter er dog oftest en legering.", disc:"1751, Axel Fredrik Cronstedt", state:"solid"},
+{z:29, sym:"Cu", name:"Kobber", cat:"transition", p:4, g:11, mass:"63.55", melt:1085, boil:2562, e:[2,8,18,1], desc:"Et af de første metaller menneskeheden brugte. Fremragende elektrisk leder. Bruges i ledninger, rør og mønter. Bronce er kobber+tin, messing er kobber+zink.", disc:"Oldtiden", state:"solid"},
+{z:30, sym:"Zn", name:"Zink", cat:"transition", p:4, g:12, mass:"65.38", melt:420, boil:907, e:[2,8,18,2], desc:"Bruges til galvanisering af stål for at forhindre rustdannelse. Essentielt spormineral for immunsystemet. Messing er kobber+zink.", disc:"1746, Andreas Sigismund Marggraf", state:"solid"},
+{z:31, sym:"Ga", name:"Gallium", cat:"post-trans", p:4, g:13, mass:"69.72", melt:30, boil:2204, e:[2,8,18,3], desc:"Smelter ved stuetemperatur (29,8°C)! Bruges i halvledere, LED-pærer og solceller. En sjov demonstration: en galliumske smelter i kaffe.", disc:"1875, Paul Emile Lecoq de Boisbaudran", state:"solid"},
+{z:32, sym:"Ge", name:"Germanium", cat:"metalloid", p:4, g:14, mass:"72.63", melt:938, boil:2833, e:[2,8,18,4], desc:"Forudsagt af Mendeleev som 'eka-silicium' før det blev opdaget. Bruges i halvledere, fiberoptik og infrarøde optiske instrumenter.", disc:"1886, Clemens Winkler", state:"solid"},
+{z:33, sym:"As", name:"Arsen", cat:"metalloid", p:4, g:15, mass:"74.92", melt:817, boil:614, e:[2,8,18,5], desc:"Berygtet som gift gennem historien. Bruges i halvledere (GaAs) og træimprænering. Små doser bruges i visse lægemidler mod kræft.", disc:"Ca. 1250, Albertus Magnus", state:"solid"},
+{z:34, sym:"Se", name:"Selen", cat:"nonmetal", p:4, g:16, mass:"78.97", melt:221, boil:685, e:[2,8,18,6], desc:"Et essentielt spormineral i kosten. Bruges i fotoceller, solceller og glas (for at fjerne grønlig farve). Navngivet efter Månegudinden Selene.", disc:"1817, Jöns Jacob Berzelius", state:"solid"},
+{z:35, sym:"Br", name:"Brom", cat:"halogen", p:4, g:17, mass:"79.90", melt:-7, boil:59, e:[2,8,18,7], desc:"Et af kun to grundstoffer der er flydende ved stuetemperatur (det andet er kviksølv). En rødbrunt, giftig væske med skarp lugt.", disc:"1826, Antoine Jérôme Balard", state:"liquid"},
+{z:36, sym:"Kr", name:"Krypton", cat:"noble", p:4, g:18, mass:"83.80", melt:-157, boil:-153, e:[2,8,18,8], desc:"En ædelgas der bruges i højintensitetslamper og lasere. Kryptonit er opfundet – det rigtige krypton er dog blot en tung, inaktiv gas.", disc:"1898, Ramsay & Travers", state:"gas"},
+{z:37, sym:"Rb", name:"Rubidium", cat:"alkali", p:5, g:1, mass:"85.47", melt:39, boil:688, e:[2,8,18,8,1], desc:"Et blødt, sølvhvidt alkaliemetal der reagerer stærkt med vand. Bruges i atomure, fotoelektriske celler og som forsøgsstof i kvantefysik.", disc:"1861, Bunsen & Kirchhoff", state:"solid"},
+{z:38, sym:"Sr", name:"Strontium", cat:"alkaline", p:5, g:2, mass:"87.62", melt:777, boil:1382, e:[2,8,18,8,2], desc:"Giver fyrværkeri sin røde farve. Strontium-90 er et radioaktivt biprodukt fra atombombe-prøvesprængninger. Bruges i magneter.", disc:"1790, Adair Crawford", state:"solid"},
+{z:39, sym:"Y", name:"Yttrium", cat:"transition", p:5, g:3, mass:"88.91", melt:1522, boil:3345, e:[2,8,18,9,2], desc:"Opkaldt efter landsbyen Ytterby i Sverige. Bruges i røde fosforescerende stoffer i TV-skærme og i superlederkeramik.", disc:"1794, Johan Gadolin", state:"solid"},
+{z:40, sym:"Zr", name:"Zirconium", cat:"transition", p:5, g:4, mass:"91.22", melt:1855, boil:4409, e:[2,8,18,10,2], desc:"Ekstremt korrosionsbestandigt. Bruges i atomreaktorers brændselsindkapsling fordi det absorberer meget lidt neutronbestråling.", disc:"1789, Martin Heinrich Klaproth", state:"solid"},
+{z:41, sym:"Nb", name:"Niobium", cat:"transition", p:5, g:5, mass:"92.91", melt:2477, boil:4744, e:[2,8,18,12,1], desc:"Bruges i superlederlegering til MRI-maskiner og partikelacceleratorer som CERN. Forstærker stål til rørledninger.", disc:"1801, Charles Hatchett", state:"solid"},
+{z:42, sym:"Mo", name:"Molybdæn", cat:"transition", p:5, g:6, mass:"95.96", melt:2623, boil:4639, e:[2,8,18,13,1], desc:"Et metal med et af de højeste smeltepunkter. Bruges i stållegeringer til højtydende stål og som katalysator i olieraffinering.", disc:"1781, Peter Jacob Hjelm", state:"solid"},
+{z:43, sym:"Tc", name:"Technetium", cat:"transition", p:5, g:7, mass:"(98)", melt:2157, boil:4265, e:[2,8,18,13,2], desc:"Det første syntetisk fremstillede grundstof. Alle isotoper er radioaktive. Technetium-99m er det mest brugte radioaktive stof i medicinsk diagnostik.", disc:"1937, Perrier & Segrè", state:"solid"},
+{z:44, sym:"Ru", name:"Ruthenium", cat:"transition", p:5, g:8, mass:"101.1", melt:2334, boil:4150, e:[2,8,18,15,1], desc:"Et sjældent platingruppelement. Bruges som katalysator og i elektroniske kontakter. Giver ekstra hårdhed til platin- og palladiumlegeringer.", disc:"1844, Karl Ernst Claus", state:"solid"},
+{z:45, sym:"Rh", name:"Rhodium", cat:"transition", p:5, g:9, mass:"102.9", melt:1964, boil:3695, e:[2,8,18,16,1], desc:"Et af verdens sjældneste og dyreste metaller. Bruges som katalysator i bilernes katalysatorer til at reducere udstødningsgasser.", disc:"1803, William Hyde Wollaston", state:"solid"},
+{z:46, sym:"Pd", name:"Palladium", cat:"transition", p:5, g:10, mass:"106.4", melt:1555, boil:2963, e:[2,8,18,18], desc:"Kan absorbere op til 900 gange sit eget volumen i brint! Bruges i katalysatorer og i tandlæge-legeringer og brændselsceller.", disc:"1803, William Hyde Wollaston", state:"solid"},
+{z:47, sym:"Ag", name:"Sølv", cat:"transition", p:5, g:11, mass:"107.9", melt:962, boil:2162, e:[2,8,18,18,1], desc:"Den bedste elektriske leder af alle grundstoffer. Brugt i smykker, mønter og fotografi i århundreder. Bruges i elektriske kontakter og antimikrobielle behandlinger.", disc:"Oldtiden", state:"solid"},
+{z:48, sym:"Cd", name:"Kadmium", cat:"transition", p:5, g:12, mass:"112.4", melt:321, boil:767, e:[2,8,18,18,2], desc:"Bruges i nikkel-kadmium batterier og som pigment (kadmiumgult). Stærkt giftig og en miljøfare. Bruges som neutronabsorber i atomreaktorer.", disc:"1817, Karl Samuel Leberecht Hermann", state:"solid"},
+{z:49, sym:"In", name:"Indium", cat:"post-trans", p:5, g:13, mass:"114.8", melt:157, boil:2072, e:[2,8,18,18,3], desc:"Et blødt, sølvhvidt metal der 'skriger' (piber) når det bøjes. Bruges i touchskærme (ITO – indium-tinoxid) og flade skærme.", disc:"1863, Reich & Richter", state:"solid"},
+{z:50, sym:"Sn", name:"Tin", cat:"post-trans", p:5, g:14, mass:"118.7", melt:232, boil:2602, e:[2,8,18,18,4], desc:"Bruges i loddetin og til at belægge stålblikdåser. Tin-pest: under -13°C kan tin smuldre til et gråt pulver – 'tin-pest' har ødelagt Napoleons knapper.", disc:"Oldtiden", state:"solid"},
+{z:51, sym:"Sb", name:"Antimon", cat:"metalloid", p:5, g:15, mass:"121.8", melt:631, boil:1587, e:[2,8,18,18,5], desc:"Bruges som flammeretardant i plastikmaterialer og i batterier. Oldtidens egyptere brugte antimon-sulfid som kajal og øjenmakeup.", disc:"Oldtiden", state:"solid"},
+{z:52, sym:"Te", name:"Tellur", cat:"metalloid", p:5, g:16, mass:"127.6", melt:450, boil:988, e:[2,8,18,18,6], desc:"Kun sjette mest sjældne grundstof på Jorden. Bruges i solceller (cadmiumtellurid) og i visse legeringer. Giver en meget ubehagelig hvidløgslugt.", disc:"1782, Franz-Joseph Müller von Reichenstein", state:"solid"},
+{z:53, sym:"I", name:"Iod", cat:"halogen", p:5, g:17, mass:"126.9", melt:114, boil:184, e:[2,8,18,18,7], desc:"Essentiel for skjoldbruskkirtlens hormoner. Iod-mangel medfører struma. Bruges som antiseptisk middel (jodsprit) og i fotografering.", disc:"1811, Bernard Courtois", state:"solid"},
+{z:54, sym:"Xe", name:"Xenon", cat:"noble", p:5, g:18, mass:"131.3", melt:-112, boil:-108, e:[2,8,18,18,8], desc:"Bruges i kraftige billygter (xenonlys) og i ionmotorer til rumfartøjer. Xenon-anæstesi er mulig men for dyr til praktisk brug.", disc:"1898, Ramsay & Travers", state:"gas"},
+{z:55, sym:"Cs", name:"Cæsium", cat:"alkali", p:6, g:1, mass:"132.9", melt:29, boil:671, e:[2,8,18,18,8,1], desc:"Det mest elektropositive grundstof. Atomure baseret på cæsium definerer det internationale sekund. Smelter næsten ved stuetemperatur (28,5°C).", disc:"1860, Bunsen & Kirchhoff", state:"solid"},
+{z:56, sym:"Ba", name:"Barium", cat:"alkaline", p:6, g:2, mass:"137.3", melt:727, boil:1897, e:[2,8,18,18,8,2], desc:"Bariumsulfat er røntgentæt og bruges som kontrastmiddel ved røntgenundersøgelse af mave-tarmkanalen ('bariumgrød').", disc:"1808, Humphry Davy", state:"solid"},
+// Lanthanides
+{z:57, sym:"La", name:"Lanthan", cat:"lanthanide", p:6, g:null,mass:"138.9", melt:918, boil:3464, e:[2,8,18,18,9,2], desc:"Det første lanthanid og det det har givet navn til hele gruppen. Bruges i kameralinser, elbil-batterier og i katalysatorer.", disc:"1839, Carl Gustaf Mosander", state:"solid"},
+{z:58, sym:"Ce", name:"Cerium", cat:"lanthanide", p:6, g:null,mass:"140.1", melt:798, boil:3443, e:[2,8,18,19,9,2], desc:"Det mest udbredte lanthanid. Bruges i cer-oxide i katalysatorer til biler, i glas (UV-absorber) og i selvrensende ovne.", disc:"1803, Berzelius & Hisinger", state:"solid"},
+{z:59, sym:"Pr", name:"Praseodym", cat:"lanthanide", p:6, g:null,mass:"140.9", melt:931, boil:3520, e:[2,8,18,21,8,2], desc:"Bruges i stærke permanentmagneter (NdFeB) og i gule glasfarvestoffer og svejsebriller. Søster-grundstof til neodym.", disc:"1885, Carl Auer von Welsbach", state:"solid"},
+{z:60, sym:"Nd", name:"Neodym", cat:"lanthanide", p:6, g:null,mass:"144.2", melt:1016, boil:3074, e:[2,8,18,22,8,2], desc:"Bruges i de stærkeste permanentmagneter kendt (NdFeB-magneter). Disse magneter findes i vindmøller, elbilmotorer og høretelefoner.", disc:"1885, Carl Auer von Welsbach", state:"solid"},
+{z:61, sym:"Pm", name:"Prometium", cat:"lanthanide", p:6, g:null,mass:"(145)", melt:1042, boil:3000, e:[2,8,18,23,8,2], desc:"Det eneste lanthanid uden stabile isotoper – alle er radioaktive. Bruges i luminescerende maling og i atombatterier til rumsonder.", disc:"1945, Marinsky, Glendenin & Coryell", state:"solid"},
+{z:62, sym:"Sm", name:"Samarium", cat:"lanthanide", p:6, g:null,mass:"150.4", melt:1072, boil:1794, e:[2,8,18,24,8,2], desc:"Bruges i samarium-kobolt-magneter der er stabile ved høje temperaturer. Bruges i headphones og guitarmikrofoner.", disc:"1879, Paul Emile Lecoq de Boisbaudran", state:"solid"},
+{z:63, sym:"Eu", name:"Europium", cat:"lanthanide", p:6, g:null,mass:"152.0", melt:822, boil:1529, e:[2,8,18,25,8,2], desc:"Bruges i røde og blå fosforescerende stoffer i farveskærme og pærer. Bruges også i eurosedlers sikkerhedsmærker.", disc:"1901, Eugène-Anatole Demarçay", state:"solid"},
+{z:64, sym:"Gd", name:"Gadolinium", cat:"lanthanide", p:6, g:null,mass:"157.3", melt:1313, boil:3273, e:[2,8,18,25,9,2], desc:"Bruges som kontrastmiddel i MRI-scanninger. Har den stærkeste paramagnetisme af alle grundstoffer og bruges i neutronabsorbere.", disc:"1880, Jean Charles Galissard de Marignac", state:"solid"},
+{z:65, sym:"Tb", name:"Terbium", cat:"lanthanide", p:6, g:null,mass:"158.9", melt:1356, boil:3230, e:[2,8,18,27,8,2], desc:"Bruges i grønne fosforescerende stoffer i LCD-skærme og i Terfenol-D, et magnetostrictivt materiale til præcisionsaktorer.", disc:"1843, Carl Gustaf Mosander", state:"solid"},
+{z:66, sym:"Dy", name:"Dysprosium", cat:"lanthanide", p:6, g:null,mass:"162.5", melt:1412, boil:2567, e:[2,8,18,28,8,2], desc:"Tilsættes neodym-magneter for at øge temperaturstabilitet. Bruges i reaktorkontrolstave og laser-materiale.", disc:"1886, Paul Emile Lecoq de Boisbaudran", state:"solid"},
+{z:67, sym:"Ho", name:"Holmium", cat:"lanthanide", p:6, g:null,mass:"164.9", melt:1474, boil:2700, e:[2,8,18,29,8,2], desc:"Har de stærkeste magnetiske egenskaber af alle grundstoffer. Bruges i magneter til MRI og i yttrium-jern-granat lasere.", disc:"1878, Marc Delafontaine & Louis Soret", state:"solid"},
+{z:68, sym:"Er", name:"Erbium", cat:"lanthanide", p:6, g:null,mass:"167.3", melt:1529, boil:2868, e:[2,8,18,30,8,2], desc:"Bruges som forstærker i fiberoptiske kabler (EDFA – Erbium-Doped Fiber Amplifier). Giver glas en smuk lyserød farve.", disc:"1843, Carl Gustaf Mosander", state:"solid"},
+{z:69, sym:"Tm", name:"Thulium", cat:"lanthanide", p:6, g:null,mass:"168.9", melt:1545, boil:1950, e:[2,8,18,31,8,2], desc:"Det næstsjældneste lanthanid. Bruges i kirurgiske lasere og i bærbare røntgenapparater. Opkaldt efter Thule – det gamle navn for Skandinavien.", disc:"1879, Per Teodor Cleve", state:"solid"},
+{z:70, sym:"Yb", name:"Ytterbium", cat:"lanthanide", p:6, g:null,mass:"173.0", melt:824, boil:1196, e:[2,8,18,32,8,2], desc:"Bruges i atomure (de præciseste nogensinde lavet), i stål og i optiske fibre. Opkaldt efter Ytterby i Sverige.", disc:"1878, Jean Charles Galissard de Marignac", state:"solid"},
+{z:71, sym:"Lu", name:"Lutetium", cat:"lanthanide", p:6, g:null,mass:"175.0", melt:1663, boil:3402, e:[2,8,18,32,9,2], desc:"Det tungeste og hårdeste lanthanid. Bruges i PET-scannere og i kræftbehandling (Lu-177 DOTATATE). Meget sjælden og dyr.", disc:"1907, Georges Urbain", state:"solid"},
+// Period 6 continued
+{z:72, sym:"Hf", name:"Hafnium", cat:"transition", p:6, g:4, mass:"178.5", melt:2233, boil:4603, e:[2,8,18,32,10,2], desc:"Kemisk næsten identisk med zirconium. Bruges i kontrolstave til atomreaktorer og i Intel-processorer som gate-dielektrikum.", disc:"1923, Dirk Coster & Hevesy", state:"solid"},
+{z:73, sym:"Ta", name:"Tantal", cat:"transition", p:6, g:5, mass:"180.9", melt:3017, boil:5458, e:[2,8,18,32,11,2], desc:"Ekstremt korrosionsbestandigt. Bruges i kondensatorer i mobiltelefoner og elektronik. Bruges i kirurgiske implantater pga. biokompatibilitet.", disc:"1802, Anders Gustaf Ekeberg", state:"solid"},
+{z:74, sym:"W", name:"Wolfram", cat:"transition", p:6, g:6, mass:"183.8", melt:3422, boil:5555, e:[2,8,18,32,12,2], desc:"Det højeste smeltepunkt af alle metaller (3422°C). Bruges i glødelampefilamenter og i hårdt metal til borehoveder. Symbol W fra det tyske 'Wolfram'.", disc:"1783, Juan & Fausto Elhuyar", state:"solid"},
+{z:75, sym:"Re", name:"Rhenium", cat:"transition", p:6, g:7, mass:"186.2", melt:3186, boil:5596, e:[2,8,18,32,13,2], desc:"Et af de sjældneste grundstoffer i jordskorpen. Bruges i jetmotorkomponenter ved meget høje temperaturer og i katalysatorer.", disc:"1925, Noddack, Berg & Tacke", state:"solid"},
+{z:76, sym:"Os", name:"Osmium", cat:"transition", p:6, g:8, mass:"190.2", melt:3033, boil:5012, e:[2,8,18,32,14,2], desc:"Det tætteste naturlige grundstof (22,59 g/cm³). Bruges i penne-spidser, elektriske kontakter og som biologisk farvestof i mikroskopi.", disc:"1803, Smithson Tennant", state:"solid"},
+{z:77, sym:"Ir", name:"Iridium", cat:"transition", p:6, g:9, mass:"192.2", melt:2446, boil:4428, e:[2,8,18,32,15,2], desc:"Det mest korrosionsbestandige kendte metal. Et iridium-anomali i K-Pg grænselaget er bevaret for asteroideimpakt-teorien (dinosaurernes uddøen).", disc:"1803, Smithson Tennant", state:"solid"},
+{z:78, sym:"Pt", name:"Platin", cat:"transition", p:6, g:10, mass:"195.1", melt:1768, boil:3825, e:[2,8,18,32,17,1], desc:"Et ædelmetallet der bruges i smykker, katalysatorer og brændselsceller. Platin bruges i katalysatorer i biler for at rense udstødning.", disc:"1735, Antonio de Ulloa", state:"solid"},
+{z:79, sym:"Au", name:"Guld", cat:"transition", p:6, g:11, mass:"197.0", melt:1064, boil:2856, e:[2,8,18,32,18,1], desc:"Et ædelmetals der sjældent reagerer med andre stoffer. Brugt i smykker, mønter og elektronik i tusinder af år. Guld er ikke reaktivt - det er derfor det bevares i grave.", disc:"Oldtiden", state:"solid"},
+{z:80, sym:"Hg", name:"Kviksølv", cat:"transition", p:6, g:12, mass:"200.6", melt:-39, boil:357, e:[2,8,18,32,18,2], desc:"Det eneste metal der er flydende ved stuetemperatur. Bruges i termometre og lysrør. Ekstremt giftigt – kviksølvforgiftning har dræbt mange historiske personligheder.", disc:"Oldtiden", state:"liquid"},
+{z:81, sym:"Tl", name:"Thallium", cat:"post-trans", p:6, g:13, mass:"204.4", melt:304, boil:1473, e:[2,8,18,32,18,3], desc:"Et blødt, giftigt metal. Bruges i infrarøde detektorer og i superlederceramik. Thalliumsulfat har tidligere været brugt som rottegift.", disc:"1861, William Crookes", state:"solid"},
+{z:82, sym:"Pb", name:"Bly", cat:"post-trans", p:6, g:14, mass:"207.2", melt:327, boil:1749, e:[2,8,18,32,18,4], desc:"Et tungt, blødt metal der var udbredt i romertiden som rørledninger og maling. Akkumulatorbatterier bruger bly. Ekstremt giftigt ved ophobning i kroppen.", disc:"Oldtiden", state:"solid"},
+{z:83, sym:"Bi", name:"Bismuth", cat:"post-trans", p:6, g:15, mass:"209.0", melt:271, boil:1564, e:[2,8,18,32,18,5], desc:"Det tungeste stabile grundstof. Danner smukke regnbuesfarvede krystaller. Bruges i Pepto-Bismol (mavemedicin), letelegeringer og som erstatning for bly.", disc:"Oldtiden", state:"solid"},
+{z:84, sym:"Po", name:"Polonium", cat:"post-trans", p:6, g:16, mass:"(209)", melt:254, boil:962, e:[2,8,18,32,18,6], desc:"Et stærkt radioaktivt og giftigt grundstof. Opdaget af Marie Curie og opkaldt efter hendes hjemland Polen. Bruges i antistatiske børster.", disc:"1898, Marie & Pierre Curie", state:"solid"},
+{z:85, sym:"At", name:"Astat", cat:"halogen", p:6, g:17, mass:"(210)", melt:302, boil:337, e:[2,8,18,32,18,7], desc:"Det sjældneste naturlige grundstof på Jordens overflade. Stærkt radioaktivt med en halveringstid på kun 8,1 timer. Potentielt nyttigt i kræftbehandling.", disc:"1940, Corson, MacKenzie & Segrè", state:"solid"},
+{z:86, sym:"Rn", name:"Radon", cat:"noble", p:6, g:18, mass:"(222)", melt:-71, boil:-62, e:[2,8,18,32,18,8], desc:"En radioaktiv ædelgas der dannes ved henfald af radium i undergrunden. Radon er den næststørste årsag til lungekræft i Danmark. Kan ophobes i huse.", disc:"1900, Friedrich Ernst Dorn", state:"gas"},
+{z:87, sym:"Fr", name:"Francium", cat:"alkali", p:7, g:1, mass:"(223)", melt:27, boil:677, e:[2,8,18,32,18,8,1],desc:"Det næstsjældneste naturlige grundstof. Yderst radioaktivt – smelter næsten ved stuetemperatur. Mindre end 1 gram eksisterer i hele Jordens skorpe ad gangen.", disc:"1939, Marguerite Perey", state:"solid"},
+{z:88, sym:"Ra", name:"Radium", cat:"alkaline", p:7, g:2, mass:"(226)", melt:700, boil:1737, e:[2,8,18,32,18,8,2],desc:"Opdaget af Marie Curie i 1898. Radium er stærkt radioaktivt og glødende i mørket. Bruges i strålebehandling mod kræft. Marie Curie døde sandsynligvis af strålingsskader.", disc:"1898, Marie & Pierre Curie", state:"solid"},
+// Actinides
+{z:89, sym:"Ac", name:"Actinium", cat:"actinide", p:7, g:null,mass:"(227)", melt:1051, boil:3198, e:[2,8,18,32,18,9,2],desc:"Det første actinid og det der har givet navn til gruppen. Radioaktivt og glødende blåt i mørket. Bruges i neutronkilder til medicinsk brug.", disc:"1899, André-Louis Debierne", state:"solid"},
+{z:90, sym:"Th", name:"Thorium", cat:"actinide", p:7, g:null,mass:"232.0", melt:1750, boil:4788, e:[2,8,18,32,18,10,2],desc:"Et radioaktivt metal der er mere udbredt end uran. Thorium kan bruges som brændsel i atomreaktorer – potentielt sikrere end uran.", disc:"1828, Jöns Jacob Berzelius", state:"solid"},
+{z:91, sym:"Pa", name:"Protactinium", cat:"actinide", p:7, g:null,mass:"231.0", melt:1568, boil:4027, e:[2,8,18,32,20,9,2],desc:"Et sjældent og giftigt radioaktivt metal. Dets isotop Pa-231 bruges til at datere havbundssedimenter og korreller med klimahistorie.", disc:"1913, Fajans & Göhring", state:"solid"},
+{z:92, sym:"U", name:"Uran", cat:"actinide", p:7, g:null,mass:"238.0", melt:1135, boil:4131, e:[2,8,18,32,21,9,2],desc:"Det tyngste naturlige grundstof. Radioaktivt. Bruges som brændsel i atomkraftværker og i atombomber. U-235 bruges til fission, U-238 er mere stabil.", disc:"1789, Martin Heinrich Klaproth", state:"solid"},
+{z:93, sym:"Np", name:"Neptunium", cat:"actinide", p:7, g:null,mass:"(237)", melt:644, boil:4000, e:[2,8,18,32,22,9,2],desc:"Det første transuranske grundstof – syntetiseret i 1940. Opkaldt efter planeten Neptun. Dannes i atomreaktorer som biprodukt af uranbestråling.", disc:"1940, McMillan & Abelson", state:"solid"},
+{z:94, sym:"Pu", name:"Plutonium", cat:"actinide", p:7, g:null,mass:"(244)", melt:640, boil:3228, e:[2,8,18,32,24,8,2],desc:"Berygtet pga. dets brug i atomvåben (Nagasaki-bomben). Radioaktivt og ekstremt giftigt. Pu-238 bruges i RTG-generatorer til rumfartøjer som Voyager.", disc:"1940, Seaborg m.fl.", state:"solid"},
+{z:95, sym:"Am", name:"Americium", cat:"actinide", p:7, g:null,mass:"(243)", melt:1176, boil:2011, e:[2,8,18,32,25,8,2],desc:"Bruges i røgdetektorer (brandalarmer). Am-241 er kilden i de fleste husholdningens røgalarmer – en fredelig anvendelse af et radioaktivt stof.", disc:"1944, Seaborg m.fl.", state:"solid"},
+{z:96, sym:"Cm", name:"Curium", cat:"actinide", p:7, g:null,mass:"(247)", melt:1345, boil:3110, e:[2,8,18,32,25,9,2],desc:"Opkaldt efter Marie og Pierre Curie. Bruges i alfa-partikelkilder til røntgenspektrometer på Mars-roveren Curiosity.", disc:"1944, Seaborg m.fl.", state:"solid"},
+{z:97, sym:"Bk", name:"Berkelium", cat:"actinide", p:7, g:null,mass:"(247)", melt:986, boil:2627, e:[2,8,18,32,27,8,2],desc:"Opkaldt efter Berkeley, Californien. Syntetiseret i cyklotron. Kun produceret i mikrogram-mængder. Bruges kun til videnskabelig forskning.", disc:"1949, Thompson, Ghiorso & Seaborg", state:"solid"},
+{z:98, sym:"Cf", name:"Californium", cat:"actinide", p:7, g:null,mass:"(251)", melt:900, boil:1472, e:[2,8,18,32,28,8,2],desc:"Californium-252 er en af de stærkeste neutronkilder. Bruges til at starte atomreaktorer og i neutronaktiveringsanalyse.", disc:"1950, Thompson m.fl.", state:"solid"},
+{z:99, sym:"Es", name:"Einsteinium", cat:"actinide", p:7, g:null,mass:"(252)", melt:860, boil:996, e:[2,8,18,32,29,8,2],desc:"Opkaldt efter Albert Einstein. Opdaget i resterne fra den første brintbombesprængning (Ivy Mike, 1952). Produceres kun i nano-gram mængder.", disc:"1952, Ghiorso m.fl.", state:"solid"},
+{z:100,sym:"Fm", name:"Fermium", cat:"actinide", p:7, g:null,mass:"(257)", melt:1527, boil:null, e:[2,8,18,32,30,8,2],desc:"Opkaldt efter Enrico Fermi. Opdaget i brintbomberester. Intet stabilt isotop. For lidt tilgængeligt til praktisk brug.", disc:"1952, Ghiorso m.fl.", state:"solid"},
+{z:101,sym:"Md", name:"Mendelevium", cat:"actinide", p:7, g:null,mass:"(258)", melt:827, boil:null, e:[2,8,18,32,31,8,2],desc:"Opkaldt efter Dmitri Mendeleev – opfinderen af det periodiske system. Syntetiseret ved bestråling af einsteinium med heliumioner.", disc:"1955, Ghiorso m.fl.", state:"solid"},
+{z:102,sym:"No", name:"Nobelium", cat:"actinide", p:7, g:null,mass:"(259)", melt:827, boil:null, e:[2,8,18,32,32,8,2],desc:"Opkaldt efter Alfred Nobel. Produceres i atombeskydere i ekstremt små mængder. Kun videnskabelige studier af dens grundlæggende egenskaber.", disc:"1966, Dubna-teamet", state:"solid"},
+{z:103,sym:"Lr", name:"Lawrencium", cat:"actinide", p:7, g:null,mass:"(266)", melt:1627, boil:null, e:[2,8,18,32,32,8,3],desc:"Det sidste actinid og det tungest element fremstillet ved neutronbestråling. Opkaldt efter Ernest Lawrence der opfandt cyklotronen.", disc:"1961, Ghiorso m.fl.", state:"solid"},
+// Period 7 continued
+{z:104,sym:"Rf", name:"Rutherfordium",cat:"transition", p:7, g:4, mass:"(267)", melt:2100, boil:5500, e:[2,8,18,32,32,10,2],desc:"Det første transactinide element. Opkaldt efter Ernest Rutherford. Produceres kun i meget små mængder. Dens kemiske egenskaber undersøges langsomt.", disc:"1969, Dubna & Berkeley", state:"solid"},
+{z:105,sym:"Db", name:"Dubnium", cat:"transition", p:7, g:5, mass:"(268)", melt:null, boil:null, e:[2,8,18,32,32,11,2],desc:"Opkaldt efter Dubna i Rusland. Syntetiseret ved kollisioner af californium og nitrogen. Ekstremt kortlivet og kun produceret i få atomer.", disc:"1970, Dubna-teamet", state:"solid"},
+{z:106,sym:"Sg", name:"Seaborgium", cat:"transition", p:7, g:6, mass:"(269)", melt:null, boil:null, e:[2,8,18,32,32,12,2],desc:"Opkaldt efter Glenn T. Seaborg der var den første levende person et element var opkaldt efter. Yderst kortlivet radioaktivt element.", disc:"1974, Ghiorso m.fl.", state:"solid"},
+{z:107,sym:"Bh", name:"Bohrium", cat:"transition", p:7, g:7, mass:"(270)", melt:null, boil:null, e:[2,8,18,32,32,13,2],desc:"Opkaldt efter Niels Bohr – den danske atomfysiker. Produceres i atomacceleratorer i enkeltatomsmængder. Yderst kortlivet.", disc:"1981, GSI Darmstadt", state:"solid"},
+{z:108,sym:"Hs", name:"Hassium", cat:"transition", p:7, g:8, mass:"(277)", melt:null, boil:null, e:[2,8,18,32,32,14,2],desc:"Opkaldt efter den tyske delstat Hessen. Syntetiseret ved kolde fusionsreaktioner. Kun få atomer nogensinde produceret.", disc:"1984, GSI Darmstadt", state:"solid"},
+{z:109,sym:"Mt", name:"Meitnerium", cat:"transition", p:7, g:9, mass:"(278)", melt:null, boil:null, e:[2,8,18,32,32,15,2],desc:"Opkaldt efter Lise Meitner der bidrog til opdagelsen af kernespaltning. En hyldest til en kvindelig videnskabsmand der aldrig fik Nobelprisen.", disc:"1982, GSI Darmstadt", state:"solid"},
+{z:110,sym:"Ds", name:"Darmstadtium", cat:"transition", p:7, g:10, mass:"(281)", melt:null, boil:null, e:[2,8,18,32,32,16,2],desc:"Opkaldt efter Darmstadt i Tyskland. Syntetiseret i GSI-centret. Kun produceret i ganske få atomer med ekstremt kort levetid.", disc:"1994, GSI Darmstadt", state:"solid"},
+{z:111,sym:"Rg", name:"Roentgenium", cat:"transition", p:7, g:11, mass:"(282)", melt:null, boil:null, e:[2,8,18,32,32,17,2],desc:"Opkaldt efter Wilhelm Röntgen der opdagede røntgenstråler. Syntetiseret i GSI. Ekstremt kortlivet og kun produceret i enkeltatomseksperimenter.", disc:"1994, GSI Darmstadt", state:"solid"},
+{z:112,sym:"Cn", name:"Copernicium", cat:"transition", p:7, g:12, mass:"(285)", melt:null, boil:null, e:[2,8,18,32,32,18,2],desc:"Opkaldt efter Nicolaus Copernicus. Kan muligvis opføre sig som en ædelgas pga. relativistiske effekter. Syntetiseret ved GSI i 1996.", disc:"1996, GSI Darmstadt", state:"solid"},
+{z:113,sym:"Nh", name:"Nihonium", cat:"post-trans", p:7, g:13, mass:"(286)", melt:null, boil:null, e:[2,8,18,32,32,18,3],desc:"Det første grundstof opdaget i Asien – Japan (Nihon = Japan). Syntetiseret ved RIKEN-instituttet i Japan. Kun verificeret i tre henfaldskæder.", disc:"2004, RIKEN Japan", state:"solid"},
+{z:114,sym:"Fl", name:"Flerovium", cat:"post-trans", p:7, g:14, mass:"(289)", melt:null, boil:null, e:[2,8,18,32,32,18,4],desc:"Opkaldt efter Flerov Laboratory i Dubna. Kan muligvis opføre sig som en ædelgas. En af de 'magiske' kerner der forventes at have relativt lang levetid.", disc:"1998, Dubna-teamet", state:"solid"},
+{z:115,sym:"Mc", name:"Moscovium", cat:"post-trans", p:7, g:15, mass:"(290)", melt:null, boil:null, e:[2,8,18,32,32,18,5],desc:"Opkaldt efter Moskva-regionen. Syntetiseret i samarbejde mellem russiske og amerikanske videnskabsmænd. Kun få atomer nogensinde observeret.", disc:"2003, Dubna & Livermore", state:"solid"},
+{z:116,sym:"Lv", name:"Livermorium", cat:"post-trans", p:7, g:16, mass:"(293)", melt:null, boil:null, e:[2,8,18,32,32,18,6],desc:"Opkaldt efter Lawrence Livermore National Laboratory i Californien. Syntetiseret ved bombardement af curium med calciumioner.", disc:"2000, Dubna & Livermore", state:"solid"},
+{z:117,sym:"Ts", name:"Tennessine", cat:"halogen", p:7, g:17, mass:"(294)", melt:null, boil:null, e:[2,8,18,32,32,18,7],desc:"Opkaldt efter Tennessee-staten i USA. Det næsttungeste kendte element. Syntetiseret i 2010 i et samarbejde mellem Rusland og USA.", disc:"2010, Dubna & Oak Ridge", state:"solid"},
+{z:118,sym:"Og", name:"Oganesson", cat:"noble", p:7, g:18, mass:"(294)", melt:null, boil:null, e:[2,8,18,32,32,18,8],desc:"Det tungeste kendte grundstof. Opkaldt efter Yuri Oganessian. Syntetiseret i 2002. Kun 5 atomer nogensinde observeret. Forventes muligvis at være en solid – ikke en gas som andre ædelgasser.", disc:"2002, Dubna-teamet", state:"solid"},
+];
+// Category display names + colors
+const catInfo = {
+"hydrogen-cat": {label:"Hydrogen", color:"#005090", text:"#aaddff"},
+"alkali": {label:"Alkalimetaller", color:"#cc2200", text:"#ffaa88"},
+"alkaline": {label:"Jordalkalimetaller",color:"#c87000", text:"#ffdd88"},
+"transition": {label:"Overgangsmetaller", color:"#2a5aaa", text:"#aaccff"},
+"post-trans": {label:"Øvrige metaller", color:"#2a7a5a", text:"#88ffcc"},
+"metalloid": {label:"Metalloider", color:"#6a6a00", text:"#ffff88"},
+"nonmetal": {label:"Ikke-metaller", color:"#006060", text:"#88ffff"},
+"halogen": {label:"Halogener", color:"#6a00aa", text:"#dd88ff"},
+"noble": {label:"Ædelgasser", color:"#3a0080", text:"#bb88ff"},
+"lanthanide": {label:"Lanthanider", color:"#3a5500", text:"#bbff44"},
+"actinide": {label:"Actinider", color:"#553000", text:"#ffbb44"},
+};
+// Grid positions [col, row] (1-indexed)
+// We need to place each element in the correct grid position
+const gridPos = {};
+elements.forEach(el => {
+if(el.g !== null) {
+gridPos[el.z] = [el.g, el.p];
+}
+});
+// Lanthanides: row 8 (displayed below), cols 3-17
+const lanActRow = [57,58,59,60,61,62,63,64,65,66,67,68,69,70,71];
+const actRow = [89,90,91,92,93,94,95,96,97,98,99,100,101,102,103];
+lanActRow.forEach((z,i) => gridPos[z] = [i+3, 8]);
+actRow.forEach((z,i) => gridPos[z] = [i+3, 9]);
+// ── BUILD GRID ──
+function buildGrid() {
+const grid = document.getElementById('pt-grid');
+grid.innerHTML = '';
+// Main table: 9 rows × 18 cols
+const cells = Array.from({length:9}, () => Array(18).fill(null));
+elements.forEach(el => {
+const pos = gridPos[el.z];
+if(!pos) return;
+const [col,row] = pos;
+cells[row-1][col-1] = el;
+});
+// Rows 1-7: main table
+for(let r=0; r<7; r++){
+for(let c=0; c<18; c++){
+const el = cells[r][c];
+if(el){
+const div = makeCell(el);
+grid.appendChild(div);
+} else {
+// Special label for lanthanide/actinide placeholder
+if((r===5 && c===2)||(r===6 && c===2)){
+const lbl = document.createElement('div');
+lbl.className = 'la-ac-label';
+lbl.textContent = r===5 ? '57–71' : '89–103';
+lbl.style.cursor='pointer';
+lbl.onclick = ()=> filterCat(r===5?'lanthanide':'actinide', null);
+grid.appendChild(lbl);
+} else {
+const sp = document.createElement('div');
+sp.className = 'spacer';
+grid.appendChild(sp);
+}
+}
+}
+}
+// Gap row (row 8) – 18 spacers
+for(let c=0;c<18;c++){
+const sp = document.createElement('div');
+sp.className = 'spacer';
+sp.style.height='8px';
+grid.appendChild(sp);
+}
+// Lanthanides row
+for(let c=0;c<18;c++){
+const el = cells[7][c];
+if(el){
+grid.appendChild(makeCell(el));
+} else {
+const sp = document.createElement('div');
+sp.className='spacer';
+// Label in col 1
+if(c===0){sp.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.5em;color:#3a5500;font-weight:bold;">La–Lu</div>';}
+grid.appendChild(sp);
+}
+}
+// Actinides row
+for(let c=0;c<18;c++){
+const el = cells[8][c];
+if(el){
+grid.appendChild(makeCell(el));
+} else {
+const sp = document.createElement('div');
+sp.className='spacer';
+if(c===0){sp.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;font-size:0.5em;color:#553000;font-weight:bold;">Ac–Lr</div>';}
+grid.appendChild(sp);
+}
+}
+updateTempView(document.getElementById('temp-slider').value);
+countStates();
+}
+function makeCell(el){
+const div = document.createElement('div');
+div.className = `el ${el.cat}`;
+div.id = `el-${el.z}`;
+div.setAttribute('data-cat', el.cat);
+div.setAttribute('data-z', el.z);
+div.setAttribute('data-name', el.name.toLowerCase());
+div.setAttribute('data-sym', el.sym.toLowerCase());
+div.innerHTML = `
+<span class="el-num">${el.z}</span>
+<span class="el-sym">${el.sym}</span>
+<span class="el-name">${el.name}</span>
+<span class="el-mass">${el.mass}</span>
+`;
+div.onclick = () => openPopup(el);
+return div;
+}
+// ── FILTER ──
+let activeFilter = 'all';
+function filterCat(cat, btn){
+activeFilter = cat;
+document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+if(btn) btn.classList.add('active');
+document.querySelectorAll('.el').forEach(cell => {
+if(cat === 'all'){
+cell.classList.remove('dimmed','highlighted');
+} else {
+if(cell.getAttribute('data-cat') === cat){
+cell.classList.remove('dimmed');
+cell.classList.add('highlighted');
+} else {
+cell.classList.add('dimmed');
+cell.classList.remove('highlighted');
+}
+}
+});
+// scroll to table
+document.querySelector('.table-wrapper').scrollIntoView({behavior:'smooth'});
+}
+// ── SEARCH ──
+function searchElements(){
+const q = document.getElementById('search').value.toLowerCase().trim();
+document.getElementById('clear-search').style.display = q ? 'inline' : 'none';
+if(!q){
+document.querySelectorAll('.el').forEach(c => {
+c.classList.remove('dimmed','highlighted');
+});
+return;
+}
+document.querySelectorAll('.el').forEach(cell => {
+const name = cell.getAttribute('data-name') || '';
+const sym = cell.getAttribute('data-sym') || '';
+const z = cell.getAttribute('data-z') || '';
+const matches = name.includes(q) || sym.includes(q) || z === q;
+if(matches){
+cell.classList.remove('dimmed');
+cell.classList.add('highlighted');
+} else {
+cell.classList.add('dimmed');
+cell.classList.remove('highlighted');
+}
+});
+}
+function clearSearch(){
+document.getElementById('search').value = '';
+document.getElementById('clear-search').style.display = 'none';
+document.querySelectorAll('.el').forEach(c => c.classList.remove('dimmed','highlighted'));
+}
+// ── TEMPERATURE VIEW ──
+function updateTempView(temp){
+temp = parseFloat(temp);
+document.getElementById('temp-c').textContent = temp;
+document.getElementById('temp-k').textContent = Math.round(temp + 273.15);
+document.getElementById('temp-f').textContent = Math.round(temp * 9/5 + 32);
+document.querySelectorAll('.el').forEach(cell => {
+const z = parseInt(cell.getAttribute('data-z'));
+const el = elements.find(e => e.z === z);
+if(!el) return;
+cell.style.outline = 'none';
+// Determine state at this temp
+if(el.melt == null || el.boil == null) return;
+if(temp < el.melt){
+cell.style.outline = '2px solid #6699ff';
+} else if(temp >= el.melt && temp < el.boil){
+cell.style.outline = '2px solid #44ccff';
+} else {
+cell.style.outline = '2px solid #ff8844';
+}
+});
+}
+function countStates(){
+let solid=0, liquid=0, gas=0;
+elements.forEach(el => {
+if(el.state==='solid') solid++;
+else if(el.state==='liquid') liquid++;
+else if(el.state==='gas') gas++;
+});
+document.getElementById('solid-count').textContent = solid;
+document.getElementById('liquid-count').textContent = liquid;
+document.getElementById('gas-count').textContent = gas;
+}
+// ── POPUP ──
+function openPopup(el){
+const ci = catInfo[el.cat];
+const box = document.getElementById('p-symbox');
+box.className = `popup-symbol-box ${el.cat}`;
+document.getElementById('p-num').textContent = el.z;
+document.getElementById('p-sym').textContent = el.sym;
+document.getElementById('p-name-s').textContent = el.name;
+document.getElementById('p-name').textContent = el.name;
+const catEl = document.getElementById('p-cat');
+catEl.textContent = ci.label;
+catEl.style.background = ci.color;
+catEl.style.color = ci.text;
+document.getElementById('p-tagline').textContent =
+`Atomnummer ${el.z} · Atommasse ${el.mass} u · Periode ${el.p} · ${el.g ? 'Gruppe '+el.g : 'f-blok'}`;
+// State
+const stateIcons = {solid:'🧱 Fast',liquid:'💧 Flydende',gas:'💨 Gas'};
+const stateColors = {solid:'#6699ff',liquid:'#44ccff',gas:'#ff8844'};
+document.getElementById('state-ind').innerHTML = `
+<div class="state-dot" style="background:${stateColors[el.state]||'#aaa'}"></div>
+<span>${stateIcons[el.state]||'Ukendt'} ved 25°C</span>
+<span style="margin-left:12px;color:#556;">·</span>
+<span style="margin-left:12px;">🔥 Smelter: ${el.melt!=null?el.melt+'°C':'—'}</span>
+<span style="margin-left:12px;">♨️ Koger: ${el.boil!=null?el.boil+'°C':'—'}</span>
+`;
+// Stats
+document.getElementById('popup-stats').innerHTML = `
+<div class="stat"><div class="s-label">Atomnummer</div><div class="s-val">${el.z}</div></div>
+<div class="stat"><div class="s-label">Atommasse</div><div class="s-val">${el.mass} u</div></div>
+<div class="stat"><div class="s-label">Smeltepunkt</div><div class="s-val">${el.melt!=null?el.melt+' °C':'—'}</div></div>
+<div class="stat"><div class="s-label">Kogepunkt</div><div class="s-val">${el.boil!=null?el.boil+' °C':'—'}</div></div>
+<div class="stat"><div class="s-label">Elektroner</div><div class="s-val">${el.e.join(' · ')}</div></div>
+<div class="stat"><div class="s-label">Opdaget</div><div class="s-val">${el.disc}</div></div>
+`;
+// Bohr model
+drawBohr(el);
+document.getElementById('popup-desc').textContent = el.desc;
+document.getElementById('overlay').classList.add('open');
+}
+function drawBohr(el){
+const container = document.getElementById('bohr-model');
+container.innerHTML = '';
+const size = 130;
+const cx = size/2, cy = size/2;
+// Nucleus
+const nuc = document.createElement('div');
+nuc.className='bohr-nucleus';
+nuc.style.background = catInfo[el.cat]?.color || '#333';
+nuc.style.boxShadow = `0 0 12px ${catInfo[el.cat]?.color || '#333'}`;
+nuc.textContent = el.sym;
+nuc.style.fontSize='0.7em';
+nuc.style.fontWeight='bold';
+container.appendChild(nuc);
+const shells = el.e;
+const maxShells = shells.length;
+const maxR = 58;
+const minR = 18;
+shells.forEach((count, si) => {
+const r = minR + (maxShells <= 1 ? 0 : (si / (maxShells-1)) * (maxR - minR));
+// Orbit ring
+const orbit = document.createElement('div');
+orbit.className='bohr-orbit';
+orbit.style.width = r*2+'px';
+orbit.style.height = r*2+'px';
+container.appendChild(orbit);
+// Electrons
+for(let i=0; i<count && i<8; i++){
+const angle = (i / Math.max(count,1)) _Math.PI_ 2 - Math.PI/2;
+const ex = cx + r * Math.cos(angle);
+const ey = cy + r * Math.sin(angle);
+const e = document.createElement('div');
+e.className='bohr-electron';
+e.style.marginTop = '-3.5px';
+e.style.marginLeft = '-3.5px';
+e.style.transform = `translate(${ex-cx}px, ${ey-cy}px)`;
+container.appendChild(e);
+}
+});
+}
+function closePopup(){
+document.getElementById('overlay').classList.remove('open');
+}
+function closePopupOut(e){
+if(e.target===document.getElementById('overlay')) closePopup();
+}
+document.addEventListener('keydown', e => { if(e.key==='Escape') closePopup(); });
+// ── QUIZ ──
+let qScore=0, qTotal=0, qActive=false;
+function newQuizQuestion(){
+qActive = true;
+const el = elements[Math.floor(Math.random()*elements.length)];
+const types = ['symbol','number','category'];
+const type = types[Math.floor(Math.random()*types.length)];
+let question, correct, getWrong;
+if(type === 'symbol'){
+question = `Hvad er symbolet for <b>${el.name}</b> (Z=${el.z})?`;
+correct = el.sym;
+getWrong = () => elements[Math.floor(Math.random()*elements.length)].sym;
+} else if(type === 'number'){
+question = `Hvad er atomnummeret for <b>${el.name}</b> (<i>${el.sym}</i>)?`;
+correct = String(el.z);
+getWrong = () => String(elements[Math.floor(Math.random()*elements.length)].z);
+} else {
+question = `Hvilken kategori tilhører <b>${el.name}</b> (<i>${el.sym}</i>)?`;
+correct = catInfo[el.cat].label;
+getWrong = () => catInfo[elements[Math.floor(Math.random()*elements.length)].cat].label;
+}
+// Build 4 options
+const opts = [correct];
+while(opts.length < 4){
+const w = getWrong();
+if(!opts.includes(w)) opts.push(w);
+}
+opts.sort(() => Math.random()-0.5);
+document.getElementById('quiz-q').innerHTML = question;
+const optsDiv = document.getElementById('quiz-opts');
+optsDiv.innerHTML = '';
+document.getElementById('quiz-fb').textContent = '';
+opts.forEach(opt => {
+const btn = document.createElement('button');
+btn.className='q-opt';
+btn.textContent = opt;
+btn.onclick = () => {
+if(!qActive) return;
+qActive = false;
+qTotal++;
+optsDiv.querySelectorAll('.q-opt').forEach(b => b.disabled=true);
+if(opt === correct){
+btn.classList.add('q-correct');
+qScore++;
+document.getElementById('quiz-fb').innerHTML = '✅ Korrekt!';
+} else {
+btn.classList.add('q-wrong');
+optsDiv.querySelectorAll('.q-opt').forEach(b => {
+if(b.textContent===correct) b.classList.add('q-correct');
+});
+document.getElementById('quiz-fb').innerHTML = `❌ Forkert! Svaret er: <b>${correct}</b>`;
+}
+document.getElementById('q-score').textContent = qScore;
+document.getElementById('q-total').textContent = qTotal;
+};
+optsDiv.appendChild(btn);
+});
+}
+// ── INIT ──
+buildGrid();
+</script>
+</body>
+</html>
